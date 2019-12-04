@@ -17,6 +17,13 @@ function splitOnSections(array, size) {
     return subArrays;
 }
 
+function reflect(promise) {
+    return promise.then(
+        value => value,
+        error => new Error(error)
+    );
+}
+
 /**
  * Функция паралелльно запускает указанное число промисов
  *
@@ -30,12 +37,12 @@ function runParallel(jobs, parallelNum) {
     return (async function () {
         let result = [];
         for (let i = 0; i < promiseSet.length; i++) {
-            try {
-                let pr = await Promise.all(promiseSet[i].map(promise => promise()));
-                result = result.concat(pr);
-            } catch (e) {
-                result.push(new Error(e));
-            }
+            let pr = await Promise.all(
+                promiseSet[i]
+                    .map(promise => promise())
+                    .map(reflect)
+            );
+            result = result.concat(pr);
         }
 
         return result;
