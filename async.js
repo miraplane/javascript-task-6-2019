@@ -20,7 +20,7 @@ function splitOnSections(array, size) {
 function reflect(promise) {
     return promise.then(
         value => value,
-        error => new Error(error)
+        error => error
     );
 }
 
@@ -32,13 +32,16 @@ function reflect(promise) {
  * @returns {Promise<Array>}
  */
 function runParallel(jobs, parallelNum) {
+    if (jobs.length === 0) {
+        return Promise.resolve([]);
+    }
     let promiseSet = splitOnSections(jobs, parallelNum);
 
-    return (async function () {
+    return (async function (promises) {
         let result = [];
-        for (let i = 0; i < promiseSet.length; i++) {
+        for (let i = 0; i < promises.length; i++) {
             let pr = await Promise.all(
-                promiseSet[i]
+                promises[i]
                     .map(promise => promise())
                     .map(reflect)
             );
@@ -46,7 +49,7 @@ function runParallel(jobs, parallelNum) {
         }
 
         return result;
-    }());
+    }(promiseSet));
 }
 
 module.exports = {
