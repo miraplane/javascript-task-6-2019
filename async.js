@@ -6,24 +6,6 @@
  */
 const isStar = false;
 
-function splitOnSections(array, size) {
-    let subArrays = [];
-    let lengthSubSet = Math.ceil(array.length / size);
-    for (let i = 0; i < lengthSubSet; i++) {
-        let startIndex = i * size;
-        subArrays.push(array.slice(startIndex, startIndex + size));
-    }
-
-    return subArrays;
-}
-
-function reflect(promise) {
-    return promise.then(
-        value => value,
-        error => error
-    );
-}
-
 /**
  * Функция паралелльно запускает указанное число промисов
  *
@@ -35,21 +17,34 @@ function runParallel(jobs, parallelNum) {
     if (jobs.length === 0) {
         return Promise.resolve([]);
     }
-    let promiseSet = splitOnSections(jobs, parallelNum);
 
     return (async function (promises) {
         let result = [];
-        for (let i = 0; i < promises.length; i++) {
-            let pr = await Promise.all(
-                promises[i]
-                    .map(promise => promise())
-                    .map(reflect)
-            );
-            result = result.concat(pr);
-        }
+        let notUsed = promises.slice(parallelNum);
 
-        return result;
-    }(promiseSet));
+        let attachNextPromise = (promise, index) => {
+            let anyway = (output) => {
+                result[index] = output;
+                if (notUsed.length !== 0) {
+                    let nextPromise = notUsed.shift();
+
+                    return attachNextPromise(nextPromise, promises.indexOf(nextPromise));
+                }
+
+                return output;
+            };
+
+            return promise()
+                .then(anyway, anyway);
+        };
+
+        await Promise.all(
+            promises.slice(0, parallelNum)
+                .map(attachNextPromise)
+        );
+
+        return Promise.resolve(result);
+    }(jobs));
 }
 
 module.exports = {
