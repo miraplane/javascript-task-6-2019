@@ -4,7 +4,7 @@
  * Сделано задание на звездочку.
  * Реализована остановка промиса по таймауту.
  */
-const isStar = true;
+const isStar = false;
 
 function goTimeout(cb, interval) {
     return () => new Promise(resolve => setTimeout(() => cb(resolve), interval));
@@ -16,9 +16,10 @@ function attachNextPromise(args, index, output) {
     }
     args.result[index] = output;
     if (args.notUsed.length !== 0) {
-        let nextPromise = args.notUsed.shift();
+        const nextPromise = args.notUsed.shift();
+        const nextIndex = args.promises.indexOf(nextPromise);
 
-        return attachPromise(args, nextPromise, args.promises.indexOf(nextPromise));
+        return attachPromise(args, nextPromise, nextIndex);
     }
 
     return output;
@@ -54,9 +55,10 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
             timeout: timeout
         };
 
+        const attach = attachPromise.bind(null, args);
         await Promise.all(
             promises.slice(0, parallelNum)
-                .map(attachPromise.bind(null, args))
+                .map(attach)
         );
 
         return Promise.resolve(args.result);
