@@ -5,33 +5,31 @@
  * Реализована остановка промиса по таймауту.
  */
 const isStar = true;
-let result = [];
-let notUsed = [];
 
 function goTimeout(cb, interval) {
     return () => new Promise(resolve => setTimeout(() => cb(resolve), interval));
 }
 
-function attachNextPromise(promises, timeout, index, output) {
+function attachNextPromise(args, index, output) {
     if (output === 'timeout') {
         output = new Error('Promise timeout');
     }
-    result[index] = output;
-    if (notUsed.length !== 0) {
-        let nextPromise = notUsed.shift();
+    args.result[index] = output;
+    if (args.notUsed.length !== 0) {
+        let nextPromise = args.notUsed.shift();
 
-        return attachPromise(promises, timeout, nextPromise, promises.indexOf(nextPromise));
+        return attachPromise(args, nextPromise, args.promises.indexOf(nextPromise));
     }
 
     return output;
 }
 
-function attachPromise(promises, timeout, promise, index) {
-    const attachNextAnyway = attachNextPromise.bind(this, promises, timeout, index);
+function attachPromise(args, promise, index) {
+    const attachNextAnyway = attachNextPromise.bind(this, args, index);
 
     return Promise.race([
         promise(),
-        goTimeout(resolve => resolve('timeout'), timeout)()
+        goTimeout(resolve => resolve('timeout'), args.timeout)()
     ]).then(attachNextAnyway, attachNextAnyway);
 }
 
@@ -49,12 +47,19 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
     }
 
     return (async function (promises) {
-        result = [];
-        notUsed = promises.slice(parallelNum);
+        const result = [];
+        const notUsed = promises.slice(parallelNum);
+
+        const args = {
+            result: result,
+            notUsed: notUsed,
+            promises: promises,
+            timeout: timeout
+        };
 
         await Promise.all(
             promises.slice(0, parallelNum)
-                .map(attachPromise.bind(this, promises, timeout))
+                .map(attachPromise.bind(this, args))
         );
 
         return Promise.resolve(result);
