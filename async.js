@@ -47,12 +47,9 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
     }
 
     return (async function (promises) {
-        const result = [];
-        const notUsed = promises.slice(parallelNum);
-
         const args = {
-            result: result,
-            notUsed: notUsed,
+            result: [],
+            notUsed: promises.slice(parallelNum),
             promises: promises,
             timeout: timeout
         };
@@ -62,7 +59,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
                 .map(attachPromise.bind(null, args))
         );
 
-        return Promise.resolve(result);
+        return Promise.resolve(args.result);
     }(jobs));
 }
 
