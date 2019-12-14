@@ -5,6 +5,35 @@
  * Реализована остановка промиса по таймауту.
  */
 const isStar = true;
+let result = [];
+let notUsed = [];
+
+function goTimeout(cb, interval) {
+    return () => new Promise(resolve => setTimeout(() => cb(resolve), interval));
+}
+
+function attachNextPromise(promises, timeout, index, output) {
+    if (output === 'timeout') {
+        output = new Error('Promise timeout');
+    }
+    result[index] = output;
+    if (notUsed.length !== 0) {
+        let nextPromise = notUsed.shift();
+
+        return attachPromise(promises, timeout, nextPromise, promises.indexOf(nextPromise));
+    }
+
+    return output;
+}
+
+function attachPromise(promises, timeout, promise, index) {
+    const attachNextAnyway = attachNextPromise.bind(this, promises, timeout, index);
+
+    return Promise.race([
+        promise(),
+        goTimeout(resolve => resolve('timeout'), timeout)()
+    ]).then(attachNextAnyway, attachNextAnyway);
+}
 
 /**
  * Функция паралелльно запускает указанное число промисов
@@ -20,36 +49,12 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
     }
 
     return (async function (promises) {
-        let result = [];
-        let notUsed = promises.slice(parallelNum);
-
-        let attachNextPromise = (promise, index) => {
-            let anyway = (output) => {
-                if (output === 'timeout') {
-                    output = new Error('Promise timeout');
-                }
-                result[index] = output;
-                if (notUsed.length !== 0) {
-                    let nextPromise = notUsed.shift();
-
-                    return attachNextPromise(nextPromise, promises.indexOf(nextPromise));
-                }
-
-                return output;
-            };
-
-            let goTimeout = (cb, interval) => () =>
-                new Promise(resolve => setTimeout(() => cb(resolve), interval));
-
-            return Promise.race([
-                promise(),
-                goTimeout(resolve => resolve('timeout'), timeout)()
-            ]).then(anyway, anyway);
-        };
+        result = [];
+        notUsed = promises.slice(parallelNum);
 
         await Promise.all(
             promises.slice(0, parallelNum)
-                .map(attachNextPromise)
+                .map(attachPromise.bind(this, promises, timeout))
         );
 
         return Promise.resolve(result);
