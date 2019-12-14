@@ -4,7 +4,7 @@
  * Сделано задание на звездочку.
  * Реализована остановка промиса по таймауту.
  */
-const isStar = false;
+const isStar = true;
 
 function goTimeout(cb, interval) {
     return () => new Promise(resolve => setTimeout(() => cb(resolve), interval));
