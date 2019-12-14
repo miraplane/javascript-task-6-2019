@@ -25,7 +25,7 @@ function attachNextPromise(args, index, output) {
 }
 
 function attachPromise(args, promise, index) {
-    const attachNextAnyway = attachNextPromise.bind(this, args, index);
+    const attachNextAnyway = attachNextPromise.bind(null, args, index);
 
     return Promise.race([
         promise(),
@@ -59,7 +59,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
 
         await Promise.all(
             promises.slice(0, parallelNum)
-                .map(attachPromise.bind(this, args))
+                .map(attachPromise.bind(null, args))
         );
 
         return Promise.resolve(result);
