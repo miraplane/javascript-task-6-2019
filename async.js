@@ -6,9 +6,8 @@
  */
 const isStar = true;
 
-function goTimeout(cb, interval) {
-    return () => new Promise(resolve => setTimeout(() => cb(resolve), interval));
-}
+const goTimeout = (cb, interval) => () =>
+    new Promise(resolve => setTimeout(() => cb(resolve), interval));
 
 function attachNextPromise(args, index, output) {
     if (output === 'timeout') {
