@@ -13,7 +13,9 @@ function attachNextPromise(args, index, output) {
     if (output === 'timeout') {
         output = new Error('Promise timeout');
     }
+
     args.result[index] = output;
+
     if (args.notUsed.length !== 0) {
         const nextPromise = args.notUsed.shift();
         const nextIndex = args.promises.indexOf(nextPromise);
@@ -33,6 +35,23 @@ function attachPromise(args, promise, index) {
     ]).then(attachNextAnyway, attachNextAnyway);
 }
 
+async function doJobs(promises, parallelNum, timeout) {
+    const args = {
+        result: [],
+        notUsed: promises.slice(parallelNum),
+        promises: promises,
+        timeout: timeout
+    };
+
+    const attach = attachPromise.bind(null, args);
+    await Promise.all(
+        promises.slice(0, parallelNum)
+            .map(attach)
+    );
+
+    return Promise.resolve(args.result);
+}
+
 /**
  * Функция паралелльно запускает указанное число промисов
  *
@@ -46,22 +65,7 @@ function runParallel(jobs, parallelNum, timeout = 1000) {
         return Promise.resolve([]);
     }
 
-    return (async function (promises) {
-        const args = {
-            result: [],
-            notUsed: promises.slice(parallelNum),
-            promises: promises,
-            timeout: timeout
-        };
-
-        const attach = attachPromise.bind(null, args);
-        await Promise.all(
-            promises.slice(0, parallelNum)
-                .map(attach)
-        );
-
-        return Promise.resolve(args.result);
-    }(jobs));
+    return doJobs(jobs, parallelNum, timeout);
 }
 
 module.exports = {
